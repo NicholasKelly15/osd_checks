@@ -1,7 +1,8 @@
-﻿Import-Module -Name .\drivers.ps1
+﻿Import-Module -Name $PSScriptRoot\drivers.ps1
+Import-Module -Name $PSScriptRoot\applications.ps1
 
 $OutputRegisterKey = 'HKLM:\SOFTWARE\Wells Fargo\OSD\Testing'
-$OutputFolder = 'C:\Users\nvk58\Desktop\TestingLogs'
+$OutputFolder = "$PSScriptRoot\Logs"
 
 Start-Transcript -OutputDirectory $OutputFolder
 
@@ -33,12 +34,23 @@ $ResultsSummary.add('InstallDate', [datetime]::now.tostring('s'))
 $ResultsSummary.add('Drivers', $DriversSummary)
 $ResultsSummary.add('DomainJoined', $DomainJoined)
 
-write-host 'testing results: '
-new-item -path $OutputRegisterKey -force | out-null
-$ResultsSummary.keys | foreach-object {
-    new-itemproperty -path $OutputRegisterKey -name $_ -value $ResultsSummary[$_]
+Write-Host 'testing results: '
+$ErrorActionPreference = 'stop'
+try {
+    new-item -path $OutputRegisterKey -force | Out-Null
+    $ResultsSummary.keys | foreach-object {
+        new-itemproperty -path $OutputRegisterKey -name $_ -value $ResultsSummary[$_] | Out-Null
+    }
+    # Get-ItemProperty $OutputRegisterKey
 }
-New-Object PSObject -Property $ResultsSummary | Export-Csv $OutputFolder\topline.csv -NoTypeInformation
-Get-ItemProperty $OutputRegisterKey
+catch [System.Security.SecurityException] {
+    Write-Host 'Unable to write top line results to registry' -ForegroundColor Red
+}
+$ErrorActionPreference = 'continue'
+
+$ResultsObject = New-Object PSObject -Property $ResultsSummary
+$ResultsObject | Export-Csv $OutputFolder\topline.csv -NoTypeInformation
+Write-Host $ResultsObject
+
 
 Stop-Transcript

@@ -52,9 +52,15 @@ function Get-RegistryApps {
 }
 
 function Get-InstalledApps {
-    return Get-Package
+    $allApps = @()
+    $overlap = @()
+    Get-Package | Select-Object Name | ForEach-Object -Process {$allApps += $_}
+    Get-RegistryApps | ForEach-Object -Process {if (!$allApps.Contains($_)) {$allApps += $_} else {$overlap += $_}}
+    return $allApps
 }
 
-$requiredApps = Get-RequiredApps Hub_Only_Apps.csv, WFDC_Base_Apps.csv
-$registryApps = Get-RegistryApps
+#$requiredApps = Get-RequiredApps $PSScriptRoot\Hub_Only_Apps.csv, $PSScriptRoot\WFDC_Base_Apps.csv
+#$registryApps = Get-RegistryApps
+#$registryApps
+#Get-InstalledApps | Export-Csv "$PSScriptRoot\Apps.csv"
 
